@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: write
 jobs:
   t:
     runs-on: ubuntu-latest
@@ -15,10 +16,17 @@ jobs:
         run: |
           DEFAULT_BRANCH=main
           NEW_FILES=$(git diff --name-only --diff-filter=A "origin/${DEFAULT_BRANCH}...HEAD" -- 'ensips/*.md' || true)
-          echo "New: [$NEW_FILES]"
-          echo "file=$NEW_FILES" >> "$GITHUB_OUTPUT"
-      - name: Comment on successful assignment (vulnerable sink)
+          FILE_COUNT=$(echo "$NEW_FILES" | grep -c . || true)
+          echo "New: $NEW_FILES (count: $FILE_COUNT)"
+          if [ "$FILE_COUNT" -eq 1 ]; then
+            echo "status=found" >> "$GITHUB_OUTPUT"
+            echo "file=$NEW_FILES" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Comment on successful assignment
+        if: steps.find.outputs.status == 'found'
         run: |
           FILE="${{ steps.find.outputs.file }}"
+          FILENAME=$(basename "$FILE")
           echo "FILE=$FILE"
-          ls -l /tmp/pwned_flag 2>/dev/null && echo INJECTION_CONFIRMED || echo NO_INJECTION
+          echo "FILENAME=$FILENAME"
+          ls -l pwned_flag && echo ARBITRARY_COMMAND_EXECUTION_CONFIRMED
