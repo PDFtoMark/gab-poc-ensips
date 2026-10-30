@@ -1,0 +1,24 @@
+name: poc-assign
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Find new ENSIP file
+        id: find
+        run: |
+          DEFAULT_BRANCH=main
+          NEW_FILES=$(git diff --name-only --diff-filter=A "origin/${DEFAULT_BRANCH}...HEAD" -- 'ensips/*.md' || true)
+          echo "New: [$NEW_FILES]"
+          echo "file=$NEW_FILES" >> "$GITHUB_OUTPUT"
+      - name: Comment on successful assignment (vulnerable sink)
+        run: |
+          FILE="${{ steps.find.outputs.file }}"
+          echo "FILE=$FILE"
+          ls -l /tmp/pwned_flag 2>/dev/null && echo INJECTION_CONFIRMED || echo NO_INJECTION
